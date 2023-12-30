@@ -36,6 +36,7 @@
 
 # Vcpkg ignore
 vcpkg/
+vcpkg_installed/
 
 # Dependencies required
 deps.txt
