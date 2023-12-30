@@ -34,3 +34,6 @@
 # CCLS cache folder
 .ccls-cache/
 
+# Dependencies required
+deps.txt
+
