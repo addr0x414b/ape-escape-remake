@@ -34,6 +34,9 @@
 # CCLS cache folder
 .ccls-cache/
 
+# Vcpkg ignore
+vcpkg/
+
 # Dependencies required
 deps.txt
 
