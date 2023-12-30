@@ -40,3 +40,6 @@ vcpkg/
 # Dependencies required
 deps.txt
 
+# Build directory
+build/
+
