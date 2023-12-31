@@ -34,6 +34,10 @@
 # CCLS cache folder
 .ccls-cache/
 
+# Cmake stuff
+CMakeCache.txt
+CMakeFiles/
+
 # Ignore vscode settings 
 .vscode/
 
