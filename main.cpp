@@ -12,6 +12,7 @@ const std::vector<const char *> validationLayers = {
 
 // C++ macro to check if we are in debug mode
 // If we are, then we want to enable validation layers
+// This is determined by the cmake parameter CMAKE_BUILD_TYPE=Debug or Release
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
@@ -31,6 +32,8 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
 int main() {
     // Print out if we are in debug or release mode
+    // Note: currently all debugging is done by calling std::cout. Perhaps this
+    // will be changed in the future to use some sort of logging system
     if (enableValidationLayers) {
         std::cout << "[DEBUG MODE]\n";
     } else {
@@ -111,6 +114,9 @@ int main() {
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_3;
 
+    // Validation layer information
+    // Our debugCallback function is used to print validation information
+    // Note the messageSeverity paremeter includes verbose, warning, and error
     VkDebugUtilsMessengerCreateInfoEXT createMessengerInfo{};
     if (enableValidationLayers) {
         createMessengerInfo.sType =
@@ -127,6 +133,7 @@ int main() {
         createMessengerInfo.pUserData = nullptr;
     }
 
+    // Info we need to create the Vulkan instance
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
@@ -149,6 +156,7 @@ int main() {
 
     const char **extensions =
         (const char **)malloc(sizeof(char *) * extensionCount);
+    // This time we pass the extensions variable to get the actual extensions
     extensionResult =
         SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, extensions);
 
@@ -161,24 +169,27 @@ int main() {
     std::vector<const char *> extensionVector(extensions,
                                               extensions + extensionCount);
 
+    std::cout << extensionVector.data() << std::endl;
     if (enableValidationLayers) {
         extensionVector.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
+    // Pass our extension information to the createInfo struct
     createInfo.enabledExtensionCount =
         static_cast<uint32_t>(extensionVector.size());
     createInfo.ppEnabledExtensionNames = extensionVector.data();
 
-    // If we want validation layers, we need to the desired layers to the
+    // If we want validation layers, we need to pass the desired layers to the
     // createInfo struct. Otherwise we set the count to 0 since we have none
     if (enableValidationLayers) {
         createInfo.enabledLayerCount =
             static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-		createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &createMessengerInfo;
+        createInfo.pNext =
+            (VkDebugUtilsMessengerCreateInfoEXT *)&createMessengerInfo;
     } else {
         createInfo.enabledLayerCount = 0;
-		createInfo.pNext = nullptr;
+        createInfo.pNext = nullptr;
     }
 
     // Create our Vulkan instance
@@ -189,6 +200,8 @@ int main() {
         return -1;
     }
 
+    // Following code is to create the debug messenger
+    // Only needed if we are using validation layers
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
         instance, "vkCreateDebugUtilsMessengerEXT");
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -237,8 +250,8 @@ int main() {
     // Below happens when we are shutting down
     // TODO: move this to a function
 
-	// If we are using validation layers, we must destroy the debug messenger on
-	// shutdown
+    // If we are using validation layers, we must destroy the debug messenger on
+    // shutdown
     if (enableValidationLayers) {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
             instance, "vkDestroyDebugUtilsMessengerEXT");
