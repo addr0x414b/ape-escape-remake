@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 
 // Grab the validation layers from the Vulkan SDK
 // These are used to check for errors
@@ -213,6 +214,76 @@ int main() {
             std::cout << "Failed to create debug messenger\n";
             return -1;
         }
+    }
+
+    // Next, we want to select a physical device
+    // This variable will hold the physical device we select
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+    std::cout << "Found " << deviceCount << " physical devices\n";
+    if (deviceCount == 0) {
+        std::cout << "Failed to find GPUs with Vulkan support\n";
+        return -1;
+    }
+
+    // Grab all the available physical devices. Some systems may have several
+    // devices we can use, i.e graphics card or integrated graphics
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+    // Candidates will store all the possible devices
+    std::multimap<int, VkPhysicalDevice> candidates;
+    // Loop through all the devices and find one that is suitable
+    // We want to find a discrete GPU that supports geometry shaders
+    // In the event there are several devices, we want to score them and pick
+    // the highest rated one
+    for (const auto &device : devices) {
+        int score = 0;
+        VkPhysicalDeviceProperties deviceProperties;
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        // If it's a discrete GPU, we give it a higher score
+        if (deviceProperties.deviceType ==
+            VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            score += 1000;
+        }
+
+        // Add the max size of textures to the score. Higher = better
+        score += deviceProperties.limits.maxImageDimension2D;
+
+        // If the device has no geometry shader, we set the score to 0
+        if (!deviceFeatures.geometryShader) {
+            score = 0;
+        }
+
+        // Insert the device with its score
+        candidates.insert(std::make_pair(score, device));
+    }
+
+    // If there are no potential candidates
+    if (candidates.empty()) {
+        std::cout << "Failed to find a suitable GPU\n";
+        return -1;
+    }
+
+    // Grab the first device (highest score), if none then no suitable
+    if (candidates.rbegin()->first > 0) {
+        physicalDevice = candidates.rbegin()->second;
+    } else {
+        std::cout << "Failed to find a suitable GPU\n";
+        return -1;
+    }
+
+    // A bit of a redundant check, but let's be safe
+    if (physicalDevice == VK_NULL_HANDLE) {
+        std::cout << "Failed to find a suitable GPU\n";
+        return -1;
+    } else {
+        std::cout << "Successfully found a suitable GPU\n";
     }
 
     // Grab the window surface of our previously created window
