@@ -3,8 +3,9 @@
 #include <vulkan/vulkan.h>
 
 #include <iostream>
-#include <vector>
 #include <map>
+#include <optional>
+#include <vector>
 
 // Grab the validation layers from the Vulkan SDK
 // These are used to check for errors
@@ -29,6 +30,41 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     std::cout << "Validation layer: " << pCallbackData->pMessage << std::endl;
 
     return VK_FALSE;
+}
+
+// Will contain the queue families
+// Queues determine which type of commands we can submit to the device
+struct QueueFamilyIndices {
+    std::optional<uint32_t> graphicsFamily;
+
+    bool isComplete() { return graphicsFamily.has_value(); }
+};
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices indices;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
+                                             nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
+                                             queueFamilies.data());
+
+    int i = 0;
+    for (const auto &queueFamily : queueFamilies) {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;
+        }
+        i++;
+    }
+
+    if (indices.isComplete()) {
+        return indices;
+    } else {
+        std::cout << "Failed to find suitable queue family\n";
+        return indices;
+    }
 }
 
 int main() {
@@ -170,7 +206,6 @@ int main() {
     std::vector<const char *> extensionVector(extensions,
                                               extensions + extensionCount);
 
-    std::cout << extensionVector.data() << std::endl;
     if (enableValidationLayers) {
         extensionVector.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
@@ -280,11 +315,59 @@ int main() {
 
     // A bit of a redundant check, but let's be safe
     if (physicalDevice == VK_NULL_HANDLE) {
-        std::cout << "Failed to find a suitable GPU\n";
+        std::cout << "Failed to find suitable GPU\n";
         return -1;
     } else {
         std::cout << "Successfully found a suitable GPU\n";
     }
+
+    // Now let's create the logical device
+    VkDevice device;
+    // Find the queue families
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+
+    if (!indices.isComplete()) {
+        std::cout << "Failed to find suitable queue family\n";
+        return -1;
+    } else {
+        std::cout << "Successfully found suitable queue family\n";
+    }
+
+    // Create the queue create info struct
+    VkDeviceQueueCreateInfo queueCreateInfo{};
+    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+    queueCreateInfo.queueCount = 1;
+    float queuePriority = 1.0f;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    // Create the logical device creation info
+    VkDeviceCreateInfo createLogicalInfo{};
+    createLogicalInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createLogicalInfo.pQueueCreateInfos = &queueCreateInfo;
+    createLogicalInfo.queueCreateInfoCount = 1;
+    createLogicalInfo.pEnabledFeatures = &deviceFeatures;
+    createLogicalInfo.enabledExtensionCount = 0;
+
+    if (enableValidationLayers) {
+        createLogicalInfo.enabledLayerCount =
+            static_cast<uint32_t>(validationLayers.size());
+        createLogicalInfo.ppEnabledLayerNames = validationLayers.data();
+    } else {
+        createLogicalInfo.enabledLayerCount = 0;
+    }
+
+    if (vkCreateDevice(physicalDevice, &createLogicalInfo, nullptr, &device) !=
+        VK_SUCCESS) {
+        std::cout << "Failed to create logical device\n";
+        return -1;
+    } else {
+        std::cout << "Successfully created logical device\n";
+    }
+
+    VkQueue graphicsQueue;
+    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
 
     // Grab the window surface of our previously created window
     SDL_Surface *window_surface = SDL_GetWindowSurface(window);
@@ -330,6 +413,7 @@ int main() {
             func(instance, debugMessenger, nullptr);
         }
     }
+    vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);
     SDL_DestroyWindowSurface(window);
     SDL_DestroyWindow(window);
