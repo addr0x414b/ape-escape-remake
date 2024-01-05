@@ -10,9 +10,9 @@ void DisplayServer::initSDL2() {
         debugger.consoleMessage("Successfully initialized SDL2 video", false);
     }
 
-    window =
-        SDL_CreateWindow("Ape Escape Remake", SDL_WINDOWPOS_CENTERED,
-                         SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("Ape Escape Remake", SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED, 800, 600,
+                              SDL_WINDOW_VULKAN);
 
     if (!window) {
         debugger.consoleMessage("Failed to create SDL2 window!", false);

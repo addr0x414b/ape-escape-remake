@@ -5,6 +5,8 @@
 #include <SDL2/SDL_vulkan.h>
 #include <vulkan/vulkan.h>
 
+#include <filesystem>
+
 #include <algorithm>
 #include <fstream>
 #include <optional>
