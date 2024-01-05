@@ -1,0 +1,1 @@
+add_library(debugger debugger.h debugger.cpp)
