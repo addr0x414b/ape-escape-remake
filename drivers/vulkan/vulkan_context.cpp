@@ -1,7 +1,9 @@
 #include "vulkan_context.h"
 
+// Grab the SDL2 window from the display server
 void VulkanContext::setWindow(SDL_Window* window) { this->window = window; }
 
+// Initialize Vulkan by calling all the helper functions
 void VulkanContext::initVulkan() {
     debugger.consoleMessage("Begin initializing Vulkan...", false);
 
@@ -24,6 +26,10 @@ void VulkanContext::initVulkan() {
     createSyncObjects();
 };
 
+const std::vector<const char*> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"};
+
+// Check to make sure we have the required validation layers
 bool VulkanContext::checkValidationLayerSupport() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -31,6 +37,8 @@ bool VulkanContext::checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
+    // Compare our available layers to the validation layers we want
+    // If we find a match, return true
     for (const char* layerName : validationLayers) {
         bool layerFound = false;
 
@@ -48,6 +56,7 @@ bool VulkanContext::checkValidationLayerSupport() {
     return true;
 }
 
+// Get the required extensions for the Vulkan instance
 std::vector<const char*> VulkanContext::getRequiredExtensions() {
     uint32_t extensionCount = 0;
 
@@ -86,6 +95,7 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() {
     return extensions;
 }
 
+// Create a debug messenger struct to handle Vulkan validation layers
 void VulkanContext::populateDebugMessengerCreateInfo(
     VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo = {};
@@ -100,6 +110,7 @@ void VulkanContext::populateDebugMessengerCreateInfo(
     createInfo.pfnUserCallback = debugCallback;
 }
 
+// Create the debug messenger
 VkResult VulkanContext::createDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
     const VkAllocationCallbacks* pAllocator,
@@ -113,6 +124,7 @@ VkResult VulkanContext::createDebugUtilsMessengerEXT(
     }
 }
 
+// Destroy the debug messenger
 void VulkanContext::destroyDebugUtilsMessengerEXT(
     VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger,
     const VkAllocationCallbacks* pAllocator) {
@@ -123,6 +135,7 @@ void VulkanContext::destroyDebugUtilsMessengerEXT(
     }
 }
 
+// Get the queue families for the physical device
 QueueFamilyIndices VulkanContext::findQueueFamilies(VkPhysicalDevice device) {
     QueueFamilyIndices indices;
 
@@ -134,6 +147,7 @@ QueueFamilyIndices VulkanContext::findQueueFamilies(VkPhysicalDevice device) {
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount,
                                              queueFamilies.data());
 
+    // Grab the present and graphics queue families
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -156,6 +170,10 @@ QueueFamilyIndices VulkanContext::findQueueFamilies(VkPhysicalDevice device) {
     return indices;
 }
 
+const std::vector<const char*> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+// Check to make sure the physical device has the required extensions
 bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
@@ -175,6 +193,7 @@ bool VulkanContext::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
+// Get the swapchain support details for the physical device
 SwapchainSupportDetails VulkanContext::querySwapchainSupport(
     VkPhysicalDevice device) {
     SwapchainSupportDetails details;
@@ -204,6 +223,7 @@ SwapchainSupportDetails VulkanContext::querySwapchainSupport(
     return details;
 }
 
+// Check to make sure the physical device has all we need for Vulkan
 bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
     QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -220,6 +240,7 @@ bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
     return indices.isComplete() && extensionsSupported && swapchainAdequate;
 }
 
+// Get the desired surface format
 VkSurfaceFormatKHR VulkanContext::chooseSwapSurfaceFormat(
     const std::vector<VkSurfaceFormatKHR>& availableFormats) {
     for (const auto& availableFormat : availableFormats) {
@@ -231,6 +252,7 @@ VkSurfaceFormatKHR VulkanContext::chooseSwapSurfaceFormat(
     return availableFormats[0];
 }
 
+// Get the desired present mode
 VkPresentModeKHR VulkanContext::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR>& availablePresentModes) {
     for (const auto& availablePresentMode : availablePresentModes) {
@@ -241,6 +263,7 @@ VkPresentModeKHR VulkanContext::chooseSwapPresentMode(
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
+// Get the desired swap extent
 VkExtent2D VulkanContext::chooseSwapExtent(
     const VkSurfaceCapabilitiesKHR& capabilities) {
     if (capabilities.currentExtent.width !=
@@ -264,12 +287,14 @@ VkExtent2D VulkanContext::chooseSwapExtent(
     }
 }
 
+// Destroy the swap chain
 void VulkanContext::cleanupSwapchain() {
+    debugger.consoleMessage("\nBegin cleaning up swapchain...", false);
     for (auto framebuffer : swapchainFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
         debugger.consoleMessage("Destroyed Vulkan framebuffer", false);
     }
-    debugger.consoleMessage("Destroyed all Vulkan framebuffers", false);
+    debugger.consoleMessage("Destroyed all Vulkan framebuffers\n", false);
 
     for (auto imageView : swapchainImageViews) {
         vkDestroyImageView(device, imageView, nullptr);
@@ -278,9 +303,10 @@ void VulkanContext::cleanupSwapchain() {
     debugger.consoleMessage("Destroyed all Vulkan image views", false);
 
     vkDestroySwapchainKHR(device, swapchain, nullptr);
-    debugger.consoleMessage("Destroyed Vulkan swap chain", false);
+    debugger.consoleMessage("Destroyed Vulkan swap chain\n", false);
 }
 
+// Read in a file and return the buffer
 std::vector<char> VulkanContext::readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -299,6 +325,7 @@ std::vector<char> VulkanContext::readFile(const std::string& filename) {
     return buffer;
 }
 
+// Create a shader module from a buffer
 VkShaderModule VulkanContext::createShaderModule(
     const std::vector<char>& code) {
     VkShaderModuleCreateInfo createInfo{};
@@ -363,6 +390,7 @@ void VulkanContext::createInstance() {
     }
 }
 
+// If debug mode, create the debug messenger
 void VulkanContext::setupDebugMessenger() {
     if (!enableValidationLayers) return;
     debugger.consoleMessage("\nBegin creating Vulkan debug messenger...",
@@ -566,7 +594,7 @@ void VulkanContext::createImageViews() {
             debugger.consoleMessage("Successfully created image view", false);
         }
     }
-    debugger.consoleMessage("Successfully created all image view", false);
+    debugger.consoleMessage("Successfully created all image views", false);
 }
 
 void VulkanContext::createRenderPass() {
@@ -616,6 +644,7 @@ void VulkanContext::createRenderPass() {
 }
 
 void VulkanContext::createGraphicsPipeline() {
+    debugger.consoleMessage("\nBegin creating graphics pipeline...", false);
     auto vertShaderCode = readFile("build/drivers/vulkan/shaders/vert.spv");
     auto fragShaderCode = readFile("build/drivers/vulkan/shaders/frag.spv");
 
@@ -794,10 +823,9 @@ void VulkanContext::createCommandBuffers() {
 
     if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) !=
         VK_SUCCESS) {
-        debugger.consoleMessage("Failed to allocate command buffers!", true);
+        debugger.consoleMessage("Failed to create command buffers!", true);
     } else {
-        debugger.consoleMessage("Successfully allocated command buffers",
-                                false);
+        debugger.consoleMessage("Successfully created command buffers", false);
     }
 }
 
@@ -834,6 +862,7 @@ void VulkanContext::createSyncObjects() {
                             false);
 }
 
+// If the window is resized, we need to recreate the swap chain
 void VulkanContext::recreateSwapchain() {
     int width = 0, height = 0;
     SDL_Vulkan_GetDrawableSize(window, &width, &height);
@@ -848,6 +877,8 @@ void VulkanContext::recreateSwapchain() {
     }
 
     vkDeviceWaitIdle(device);
+    // Clean up the swap chain and recreate it with the image views and frame
+    // buffers
     cleanupSwapchain();
     createSwapchain();
     createImageViews();
@@ -855,7 +886,7 @@ void VulkanContext::recreateSwapchain() {
 }
 
 void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer,
-                            uint32_t imageIndex) {
+                                        uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -875,15 +906,17 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer,
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      graphicsPipeline);
 
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) swapchainExtent.width;
-    viewport.height = (float) swapchainExtent.height;
+    viewport.width = (float)swapchainExtent.width;
+    viewport.height = (float)swapchainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -911,13 +944,14 @@ void VulkanContext::drawFrame() {
         device, swapchain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
         VK_NULL_HANDLE, &imageIndex);
 
+    // If our window has been resized, we need to recreate the swap chain
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         debugger.consoleMessage("Failed to acquire swap chain image!", true);
     }
-    
+
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
@@ -927,7 +961,8 @@ void VulkanContext::drawFrame() {
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
     VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkPipelineStageFlags waitStages[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
@@ -939,7 +974,8 @@ void VulkanContext::drawFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
+                      inFlightFences[currentFrame]) != VK_SUCCESS) {
         debugger.consoleMessage("Failed to submit draw command buffer!", true);
     }
 
@@ -957,7 +993,8 @@ void VulkanContext::drawFrame() {
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+        framebufferResized) {
         framebufferResized = false;
         recreateSwapchain();
     } else if (result != VK_SUCCESS) {
@@ -965,7 +1002,6 @@ void VulkanContext::drawFrame() {
     }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
 }
 
 void VulkanContext::cleanup() {
@@ -980,7 +1016,7 @@ void VulkanContext::cleanup() {
     debugger.consoleMessage("Destroyed Vulkan graphics pipeline layout", false);
 
     vkDestroyRenderPass(device, renderPass, nullptr);
-    debugger.consoleMessage("Destroyed Vulkan render pass", false);
+    debugger.consoleMessage("Destroyed Vulkan render pass\n", false);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -992,22 +1028,22 @@ void VulkanContext::cleanup() {
         vkDestroyFence(device, inFlightFences[i], nullptr);
         debugger.consoleMessage("Destroyed Vulkan in flight fence", false);
     }
-    debugger.consoleMessage("Destroyed all Vulkan semaphores and fences",
+    debugger.consoleMessage("Destroyed all Vulkan semaphores and fences\n",
                             false);
 
     vkDestroyCommandPool(device, commandPool, nullptr);
-    debugger.consoleMessage("Destroyed Vulkan command pool", false);
+    debugger.consoleMessage("Destroyed Vulkan command pool\n", false);
 
     vkDestroyDevice(device, nullptr);
-    debugger.consoleMessage("Destroyed Vulkan logical device", false);
+    debugger.consoleMessage("Destroyed Vulkan logical device\n", false);
     if (enableValidationLayers) {
         destroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-        debugger.consoleMessage("Destroyed Vulkan debug messenger", false);
+        debugger.consoleMessage("Destroyed Vulkan debug messenger\n", false);
     }
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
     debugger.consoleMessage("Destroyed Vulkan surface", false);
     vkDestroyInstance(instance, nullptr);
     debugger.consoleMessage("Destroyed Vulkan instance", false);
-    debugger.consoleMessage("Successfully cleaned up Vulkan\n", false);
+    debugger.consoleMessage("\nSuccessfully cleaned up Vulkan\n", false);
 }

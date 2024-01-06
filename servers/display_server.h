@@ -7,17 +7,23 @@
 #include "drivers/vulkan/vulkan_context.h"
 
 class DisplayServer {
-public:
+   public:
+    // Initialize SDL2 and Vulkan
     void init();
+
+    // Destroy all SDL2 and Vulkan objects and quit SDL2
     void cleanup();
+
+    // Display server loop
     void run();
 
-private:
+   private:
     Debugger debugger;
     VulkanContext vulkanContext;
 
     SDL_Window *window;
 
+    // Initialize SDL2 and create a window
     void initSDL2();
 };
 #endif

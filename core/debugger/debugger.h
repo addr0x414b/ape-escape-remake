@@ -3,7 +3,8 @@
 #include <iostream>
 
 class Debugger {
-public:
+   public:
+    // Print a message to the console. Throw an exception if it's an error
     void consoleMessage(const char* message, bool error);
 };
-#endif 
+#endif

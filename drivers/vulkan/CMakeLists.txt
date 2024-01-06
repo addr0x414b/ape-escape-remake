@@ -15,5 +15,4 @@ add_custom_command(
     TARGET vulkan_context POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${SHADER_SOURCE_DIR} ${SHADER_BINARY_DIR}
-    COMMENT "Copying shaders to build directory"
 )
