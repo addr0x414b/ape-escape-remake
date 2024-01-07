@@ -144,6 +144,12 @@ class VulkanContext {
     void createCommandBuffers();
     void createSyncObjects();
 
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                      VkMemoryPropertyFlags properties, VkBuffer& buffer,
+                      VkDeviceMemory& bufferMemory);
+    
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
     // Check to make sure we have the required validation layers
     bool checkValidationLayerSupport();
 
