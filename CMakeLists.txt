@@ -7,6 +7,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_subdirectory(core)
 add_subdirectory(servers)
 add_subdirectory(drivers)
+add_subdirectory(thirdparty)
 
 #find_package(SDL2 CONFIG REQUIRED)
 #find_package(Vulkan REQUIRED)

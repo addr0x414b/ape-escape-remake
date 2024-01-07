@@ -15,8 +15,8 @@
 #include <vector>
 
 #define GLM_FORCE_RADIANS
-#include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "core/debugger/debugger.h"
 
@@ -24,6 +24,12 @@
 const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
+#endif
+
+// This is defined in the CMakelists.txt file
+// Doing this simply to get rid of the intellisense error
+#ifndef ASSET_PATH
+#define ASSET_PATH ""
 #endif
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -52,6 +58,7 @@ struct UniformBufferObject {
 struct Vertex {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoord;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -61,9 +68,9 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 2>
+    static std::array<VkVertexInputAttributeDescription, 3>
     getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2>
+        std::array<VkVertexInputAttributeDescription, 3>
             attributeDescriptions{};
 
         attributeDescriptions[0].binding = 0;
@@ -76,16 +83,22 @@ struct Vertex {
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(Vertex, color);
 
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
         return attributeDescriptions;
     }
 };
 
 const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
 
-const std::vector<Vertex> vertices = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                      {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                      {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                      {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+const std::vector<Vertex> vertices = {
+    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
 
 class VulkanContext {
    public:
@@ -140,6 +153,12 @@ class VulkanContext {
 
     void createUniformBuffers();
 
+    void createTextureImage();
+    void createImage(uint32_t width, uint32_t height, VkFormat format,
+                     VkImageTiling tiling, VkImageUsageFlags usage,
+                     VkMemoryPropertyFlags properties, VkImage& image,
+                     VkDeviceMemory& imageMemory);
+
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -147,6 +166,9 @@ class VulkanContext {
 
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
+
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
 
     bool framebufferResized = false;
 
@@ -167,6 +189,20 @@ class VulkanContext {
     void createCommandBuffers();
     void createSyncObjects();
 
+    void createTextureSampler();
+
+    VkImageView textureImageView;
+    VkSampler textureSampler;
+
+    void createTextureImageView();
+
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    void transitionImageLayout(VkImage image, VkFormat format,
+                               VkImageLayout oldLayout,
+                               VkImageLayout newLayout);
+
     void createDescriptorPool();
     void createDescriptorSets();
 
@@ -176,7 +212,12 @@ class VulkanContext {
 
     void createIndexBuffer();
 
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                           uint32_t height);
+
     void updateUniformBuffer(uint32_t currentImage);
+
+    VkImageView createImageView(VkImage image, VkFormat format);
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
