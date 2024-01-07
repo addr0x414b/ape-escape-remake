@@ -58,8 +58,8 @@ void DisplayServer::run() {
                 e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
                 bQuit = true;
             }
-            // Vulkan context handles drawing to the surface
-            vulkanContext.drawFrame();
         }
+        // Vulkan context handles drawing to the surface
+        vulkanContext.drawFrame();
     }
 }
