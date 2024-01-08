@@ -12,21 +12,21 @@
 #include <glm/glm.hpp>
 #include <optional>
 #include <set>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
-#include <chrono>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "core/debugger/debugger.h"
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+#include <chrono>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+
+#include "core/debugger/debugger.h"
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
@@ -50,7 +50,6 @@ struct QueueFamilyIndices {
         return graphicsFamily.has_value() && presentFamily.has_value();
     }
 };
-
 
 struct SwapchainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -107,15 +106,16 @@ struct Vertex {
 };
 
 namespace std {
-    template<> struct hash<Vertex> {
-        size_t operator()(Vertex const& vertex) const {
-            return ((hash<glm::vec3>()(vertex.pos) ^
-                     (hash<glm::vec3>()(vertex.color) << 1)) >>
-                    1) ^
-                   (hash<glm::vec2>()(vertex.texCoord) << 1);
-        }
-    };
-}
+template <>
+struct hash<Vertex> {
+    size_t operator()(Vertex const& vertex) const {
+        return ((hash<glm::vec3>()(vertex.pos) ^
+                 (hash<glm::vec3>()(vertex.color) << 1)) >>
+                1) ^
+               (hash<glm::vec2>()(vertex.texCoord) << 1);
+    }
+};
+}  // namespace std
 
 /*const std::vector<Vertex> vertices = {
     {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -194,10 +194,10 @@ class VulkanContext {
     Assimp::Importer importer;
 
     void createTextureImage();
-    void createImage(uint32_t width, uint32_t height, VkFormat format,
-                     VkImageTiling tiling, VkImageUsageFlags usage,
-                     VkMemoryPropertyFlags properties, VkImage& image,
-                     VkDeviceMemory& imageMemory);
+    void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+                     VkFormat format, VkImageTiling tiling,
+                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+                     VkImage& image, VkDeviceMemory& imageMemory);
 
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -207,6 +207,14 @@ class VulkanContext {
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
 
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkSampleCountFlagBits getMaxUsableSampleCount();
+
+    VkImage colorImage;
+    VkDeviceMemory colorImageMemory;
+    VkImageView colorImageView;
+
+    uint32_t mipLevels;
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
 
@@ -216,7 +224,11 @@ class VulkanContext {
 
     void createDepthResources();
 
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    void createColorResources();
+
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+                                 VkImageTiling tiling,
+                                 VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
 
@@ -241,6 +253,8 @@ class VulkanContext {
 
     void createTextureSampler();
 
+    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
     VkImageView textureImageView;
     VkSampler textureSampler;
 
@@ -251,7 +265,7 @@ class VulkanContext {
 
     void transitionImageLayout(VkImage image, VkFormat format,
                                VkImageLayout oldLayout,
-                               VkImageLayout newLayout);
+                               VkImageLayout newLayout, uint32_t mipLevels);
 
     void createDescriptorPool();
     void createDescriptorSets();
@@ -267,7 +281,8 @@ class VulkanContext {
 
     void updateUniformBuffer(uint32_t currentImage);
 
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    VkImageView createImageView(VkImage image, VkFormat format,
+                                VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
