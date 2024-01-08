@@ -29,6 +29,7 @@ void VulkanContext::initVulkan() {
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+    loadModel();
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -852,7 +853,8 @@ void VulkanContext::createGraphicsPipeline() {
     }
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
-    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.sType =
+        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
     depthStencil.depthWriteEnable = VK_TRUE;
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
@@ -971,6 +973,7 @@ VkFormat VulkanContext::findSupportedFormat(
     }
     debugger.consoleMessage("Failed to find supported format!", true);
     VkFormat t;
+    // This will never call, the above throws an error
     return t;
 }
 
@@ -991,8 +994,11 @@ VkFormat VulkanContext::findDepthFormat() {
 void VulkanContext::createTextureImage() {
     debugger.consoleMessage("\nBegin creating texture image...", false);
     int texWidth, texHeight, texChannels;
+    // stbi_uc* pixels = stbi_load(
+    //     (std::string(ASSET_PATH) + "/textures/ape-escape-cover.jpg").c_str(),
+    //     &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     stbi_uc* pixels = stbi_load(
-        (std::string(ASSET_PATH) + "/textures/ape-escape-cover.jpg").c_str(),
+        (std::string(ASSET_PATH) + "/textures/viking_room.png").c_str(),
         &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1070,6 +1076,48 @@ void VulkanContext::createTextureSampler() {
     } else {
         debugger.consoleMessage("Successfully created texture sampler", false);
     }
+}
+
+void VulkanContext::loadModel() {
+    const aiScene* scene = importer.ReadFile(
+        (std::string(ASSET_PATH) + "/models/viking_room.obj").c_str(),
+        aiProcess_Triangulate | aiProcess_FlipUVs);
+    
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        debugger.consoleMessage("Failed to load model!", true);
+    } else {
+        debugger.consoleMessage("Successfully loaded model", false);
+    }
+
+    std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+
+    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
+        const aiMesh* mesh = scene->mMeshes[i];
+
+        for (unsigned int j = 0; j < mesh->mNumVertices; j++) {
+            Vertex vertex{};
+            vertex.pos = {mesh->mVertices[j].x, mesh->mVertices[j].y,
+                          mesh->mVertices[j].z};
+            vertex.texCoord = {mesh->mTextureCoords[0][j].x,
+                               mesh->mTextureCoords[0][j].y};
+            vertex.color = {1.0f, 1.0f, 1.0f};
+
+            if (uniqueVertices.count(vertex) == 0) {
+                uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+                vertices.push_back(vertex);
+            }
+
+            indices.push_back(uniqueVertices[vertex]);
+        }
+
+        /*for (unsigned int j = 0; j < mesh->mNumFaces; j++) {
+            const aiFace& face = mesh->mFaces[j];
+            indices.push_back(face.mIndices[0]);
+            indices.push_back(face.mIndices[1]);
+            indices.push_back(face.mIndices[2]);
+        }*/
+    }
+
 }
 
 void VulkanContext::createImage(uint32_t width, uint32_t height,
@@ -1603,7 +1651,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer,
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapchainExtent;
 
-    //VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    // VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
@@ -1633,7 +1681,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer,
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelineLayout, 0, 1, &descriptorSets[currentFrame],

@@ -7,6 +7,7 @@
         "vulkan"
       ]
     },
-    "vulkan"
+    "vulkan",
+    "assimp"
   ]
 }
