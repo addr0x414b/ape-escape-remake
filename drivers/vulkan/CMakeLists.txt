@@ -8,6 +8,7 @@ target_link_libraries(vulkan_context PRIVATE assimp::assimp)
 target_link_libraries(vulkan_context PRIVATE $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main> $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>)
 target_link_libraries(vulkan_context PRIVATE Vulkan::Vulkan)
 target_link_libraries(ApeEscapeRemake PRIVATE glm::glm)
+target_link_libraries(vulkan_context PUBLIC mesh_3d)
 
 target_link_libraries(vulkan_context PRIVATE debugger)
 target_link_libraries(vulkan_context PRIVATE stb_image)

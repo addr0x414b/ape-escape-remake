@@ -177,23 +177,43 @@ class VulkanContext {
     std::vector<VkCommandBuffer> commandBuffers;
 
     std::vector<Vertex> vertices;
+    std::vector<Vertex> vertices2;
     std::vector<uint32_t> indices;
+    std::vector<uint32_t> indices2;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
 
+    VkBuffer vertexBuffer2;
+    VkDeviceMemory vertexBufferMemory2;
+    VkBuffer indexBuffer2;
+    VkDeviceMemory indexBufferMemory2;
+
+    void createVertexBuffer2();
+    void createIndexBuffer2();
+
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
 
+    std::vector<VkBuffer> uniformBuffers2;
+    std::vector<VkDeviceMemory> uniformBuffersMemory2;
+    std::vector<void*> uniformBuffersMapped2;
+
     void createUniformBuffers();
+
+    void updateUniformBuffer2(uint32_t currentImage);
 
     void loadModel();
 
     Assimp::Importer importer;
 
+    void createDescriptorSets2();
+    void createUniformBuffers2();
+
     void createTextureImage();
+    void createTextureImage2();
     void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
                      VkFormat format, VkImageTiling tiling,
                      VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -206,6 +226,7 @@ class VulkanContext {
 
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
+    std::vector<VkDescriptorSet> descriptorSets2;
 
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     VkSampleCountFlagBits getMaxUsableSampleCount();
@@ -217,6 +238,10 @@ class VulkanContext {
     uint32_t mipLevels;
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
+
+    uint32_t mipLevels2;
+    VkImage textureImage2;
+    VkDeviceMemory textureImageMemory2;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -251,12 +276,23 @@ class VulkanContext {
     void createCommandBuffers();
     void createSyncObjects();
 
+    void createTextureImageModel();
+
+    void createTextureImageView2();
+
+    void createTextureSampler2();
+
     void createTextureSampler();
+
+    void loadModel2();
 
     void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
     VkImageView textureImageView;
     VkSampler textureSampler;
+
+    VkImageView textureImageView2;
+    VkSampler textureSampler2;
 
     void createTextureImageView();
 

@@ -8,6 +8,7 @@ add_subdirectory(core)
 add_subdirectory(servers)
 add_subdirectory(drivers)
 add_subdirectory(thirdparty)
+add_subdirectory(scene)
 
 #find_package(SDL2 CONFIG REQUIRED)
 #find_package(Vulkan REQUIRED)
